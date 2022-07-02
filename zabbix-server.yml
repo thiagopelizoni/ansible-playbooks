@@ -1,9 +1,10 @@
 - name: zabbix-server
   hosts: zabbix-server
-  become: true
+  become: yes
+  become_user: root
   vars:
-    zabbix_db_password: put_your_password_here
-    zabbix_db_server: 172.16.2.91
+    mysql_root_password: "put_your_password_here"
+    mysql_zabbix_password: "put_your_password_here"
 
   tasks:
     - name: get Zabbix 6.1.2
@@ -60,8 +61,8 @@
         line: "{{ item.line }}"
         backrefs: yes
       with_items:
-        - { regexp: '# DBPassword=', line: "DBPassword={{ zabbix_db_password }}" }
-        - { regexp: '# DBHost=localhost', line: "DBHost={{ zabbix_db_server }}" }
+        - { regexp: '# DBPassword=', line: "DBPassword={{ mysql_zabbix_password }}" }
+        - { regexp: '# DBHost=localhost', line: "DBHost=localhost" }
 
     - name: starting and enabling zabbix-server
       systemd:
@@ -217,3 +218,41 @@
         name: php-fpm
         state: restarted
         enabled: yes
+
+    - name: Installing PyMySQL
+      pip:
+        name: PyMySQL
+        state: forcereinstall
+
+    - name: Set root user password on MySQL Server
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        check_implicit_admin: yes
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        state: present
+
+    - name: creating zabbix user on MySQL Server
+      mysql_user:
+        host: 127.0.0.1
+        name: zabbix
+        password: "{{ mysql_zabbix_password }}"
+        priv: 'zabbix.*:ALL,GRANT'
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: create a new database
+      mysql_db:
+        name: zabbix
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        encoding: utf8mb4
+      register: database_exists
+
+    - name: import Zabbix data skeleton into zabbix database
+      shell:
+        cmd: zcat /usr/share/doc/zabbix-sql-scripts/mysql/server.sql.gz | mysql -uroot -p"{{ mysql_root_password }}" zabbix
+      when: database_exists.changed
