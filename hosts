@@ -1,0 +1,11 @@
+[zabbix-server]
+172.16.2.91
+
+[zabbix-agent]
+172.16.2.86
+
+[zabbix-agent-legacy]
+172.16.2.86
+
+[nginx]
+172.16.2.91
