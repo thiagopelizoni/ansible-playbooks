@@ -13,3 +13,11 @@ Installing the latest NGINX version for RHEL, configure firewalld to open HTTP a
 ```
 ansible-playbook nginx.yml
 ```
+
+# [Zabbix Server](zabbix-server.yml)
+
+Installing Zabbix Server and frontend including service along side with a NGINX virtualhost and PHP-FPM socket.
+
+```
+ansible-playbook zabbix-server.yml -l <zabbix-server-ip>
+```
