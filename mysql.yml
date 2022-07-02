@@ -1,0 +1,30 @@
+- name: mysql
+  hosts: mysql
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: installing MySQL Server
+      dnf:
+        name: mysql-server
+        state: latest
+
+    - name: starting and enabling MySQL Server
+      systemd:
+        name: mysqld
+        state: started
+        enabled: yes
+
+    - name: firewall-cmd --add-service=mysql --permanent
+      firewalld:
+        service: mysql
+        permanent: yes
+        state: enabled
+
+    - name: firewall-cmd --reload
+      shell:
+        cmd: firewall-cmd --reload
+
+    - name: SELinux setsebool -P httpd_can_network_connect_db 1
+      shell:
+        cmd: setsebool -P httpd_can_network_connect_db 1
