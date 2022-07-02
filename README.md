@@ -8,6 +8,8 @@ We adopt [AlmaLinux](https://almalinux.org/) as default for our systems but all 
 
 The [hosts](hosts) contains a basic structure I used to use for control the execution of my playbooks.
 
+All internal environments are organized using roles for better organization but here I'm just put the playbook standalone that work as well for practical examples.
+
 # [NGINX](nginx.yml)
 
 Installing the latest NGINX version for RHEL, configure firewalld to open HTTP and HTTPS port and allow SELinux to connect through HTTP.
@@ -32,9 +34,9 @@ Installing Zabbix Agent for systems based on RHEL 8.
 ansible-playbook -i hosts zabbix-agent.yml
 ```
 
-# [Zabbix Agent Legacy](zabbix-agent-legacy.yml) for RHEL 5, 6 or 7
+# [Zabbix Agent Legacy](zabbix-agent-legacy.yml) for CentOS 5, 6 or 7
 
-Installing Zabbix Agent for systems based on RHEL 5, 6 or 7 like.
+Installing Zabbix Agent for systems based on CentOS 5, 6 or 7 like.
 
 ```
 ansible-playbook -i hosts zabbix-agent-legacy.yml

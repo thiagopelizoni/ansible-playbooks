@@ -1,0 +1,47 @@
+- name: zabbix-agent-legacy
+  hosts: zabbix-agent-legacy
+  become: yes
+  become_user: root
+  vars:
+    zabbix_server: 172.16.2.91
+
+  tasks:
+    - name: get Zabbix Agent for CentOS 5
+      shell:
+        cmd: rpm -Uvh rpm -Uvh http://repo.zabbix.com/zabbix/3.0/rhel/5/x86_64/zabbix-release-3.0-1.el5.noarch.rpm
+      ignore_errors: yes
+      when: ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "5"
+
+    - name: get Zabbix Agent for CentOS 6
+      shell:
+        cmd: rpm -Uvh http://repo.zabbix.com/zabbix/3.0/rhel/6/x86_64/zabbix-release-3.0-1.el6.noarch.rpm
+      ignore_errors: yes
+      when: ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "6"
+
+    - name: get Zabbix Agent for CentOS 7
+      shell:
+        cmd: rpm -Uvh http://repo.zabbix.com/zabbix/3.0/rhel/7/x86_64/zabbix-release-3.0-1.el7.noarch.rpm
+      ignore_errors: yes
+      when: ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "7"
+
+    - name: installing Zabbix agent
+      yum:
+        name: zabbix-agent
+        state: latest
+
+    - name: configurations on /etc/zabbix/zabbix_agentd.conf
+      lineinfile:
+        dest: /etc/zabbix/zabbix_agentd.conf
+        state: present
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backrefs: yes
+      with_items:
+        - { regexp: '^Server=.+', line: "Server={{ zabbix_server }}" }
+        - { regexp: '^ServerActive=.+', line: "ServerActive={{ zabbix_server }}" }
+        - { regexp: '^Hostname=.+', line: "Hostname={{ hostvars[inventory_hostname].ansible_hostname }}" }
+
+    - name: starts Zabbix agent
+      service:
+        name: zabbix-agent
+        state: restarted
