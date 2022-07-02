@@ -1,0 +1,49 @@
+- name: nginx
+  hosts: all
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: adding nginx.repo file into /etc/yum.repos.d/
+      blockinfile:
+        path: /etc/yum.repos.d/nginx.repo
+        block: |
+          [nginx-stable]
+          name=nginx stable repo
+          baseurl=http://nginx.org/packages/centos/$releasever/$basearch/
+          gpgcheck=1
+          enabled=1
+          gpgkey=https://nginx.org/keys/nginx_signing.key
+          module_hotfixes=true
+
+          [nginx-mainline]
+          name=nginx mainline repo
+          baseurl=http://nginx.org/packages/mainline/centos/$releasever/$basearch/
+          gpgcheck=1
+          enabled=0
+          gpgkey=https://nginx.org/keys/nginx_signing.key
+          module_hotfixes=true
+
+    - name: install the latest version of nginx
+      dnf:
+        name: nginx
+        state: latest
+
+    - name: staging and enabling nginx on systemd
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: enabling HTTP and HTTPS on firewall-cmd
+      firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        state: enabled
+      with_items:
+        - http
+        - https
+
+    - name: SELinux allowing connect to HTTP
+      shell:
+        cmd: setsebool -P httpd_can_network_connect 1
