@@ -10,6 +10,14 @@ The [hosts](hosts) contains a basic structure I used to use for control the exec
 
 All internal environments are organized using roles for better organization but here I'm just put the playbook standalone that work as well for practical examples.
 
+# [Common](common.yml)
+
+The common.yml playbook is used to standardize our environments with the most common packages and basic configurations because we used to install the minimum version of the latest AlmaLinux availaible at time.
+
+```
+ansible-playbook -i hosts nginx.yml
+```
+
 # [NGINX](nginx.yml)
 
 Installing the latest NGINX version for RHEL, configure firewalld to open HTTP and HTTPS port and allow SELinux to connect through HTTP.

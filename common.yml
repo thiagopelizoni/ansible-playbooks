@@ -1,0 +1,192 @@
+- name: Basic OS configurations for RHEL
+  hosts: all
+  become: yes
+  vars:
+    timezone: America/Sao_Paulo
+    # strong_password_plain_text_here
+    root_pass_sha256: "$6$sfBivk7a1dYAQNMo$0wmN/sEsSapNR54BXXmHA3fHnMzve6kXth14BuQ2uBUeXw1C65BP4fZ1WMViQXGxP/6C3gYQFv6KoOX2L0u9d1"
+
+  tasks:
+    - name: /etc/profile configurations
+      lineinfile:
+        dest: /etc/profile
+        line: "{{ item }}"
+      with_items:
+        - 'export TERM="xterm"'
+        - 'export EDITOR="/usr/bin/vim"'
+        - 'export GIT_EDITOR="/usr/bin/vim"'
+        - 'export HISTTIMEFORMAT="%d/%m/%Y - %H:%M:%S - "'
+        - 'export HISTSIZE="5000"'
+        - 'export HISTFILESIZE="5000"'
+        - 'alias ls="ls -lh --color"'
+        - 'alias grep="grep --color"'
+        - 'alias egrep="egrep --color"'
+        - 'alias vi="vim"'
+        - 'alias rm="rm -i"'
+        - 'alias l="ls -lah"'
+        - 'alias la="ls -lAh"'
+        - 'alias ll="ls -lah"'
+        - 'alias rm="rm -f"'
+
+    - name: system update
+      dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: enabling epel release
+      dnf:
+        name: epel-release
+        state: present
+
+    - name: installing common packages
+      dnf:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - "@Development tools"
+        - bind-utils
+        - bc
+        - bzip2
+        - curl
+        - git
+        - htop
+        - iperf3
+        - iptraf
+        - lsof
+        - mtr
+        - net-tools
+        - nmap
+        - pv
+        - screen
+        - tcpdump
+        - telnet
+        - unzip
+        - vim
+        - wget
+        - aspell
+        - bash-completion
+        - tree
+        - yum-utils
+        - mlocate
+        - logrotate
+        - chrony
+        - setroubleshoot-server
+        - policycoreutils
+        - selinux-policy-doc
+        - python2
+        - python3
+        - rsync
+
+    - name: setting root password
+      user:
+        name: root
+        update_password: always
+        password: "{{ root_pass_sha256 }}"
+
+    - name: /etc/vimrc configuration
+      blockinfile:
+        path: /etc/vimrc
+        block: |
+          set term=xterm
+          set encoding=utf-8
+          set nocompatible
+          set bs=indent,eol,start
+          set viminfo='20,\"50
+          set history=50
+          set mouse=a
+          set number
+          set background=dark
+          set is hls ic scs
+          set sm
+          set ruler
+          set shm=filmnrwxt
+          set wildmode=longest,list
+          set visualbell
+          set et
+          set ts=4
+          set paste
+          set softtabstop=4
+          set showmode
+          set autoindent
+          set smarttab
+          set backspace=eol,start,indent
+          set showcmd
+          set title
+          set modeline
+          set autoread
+          set smartindent
+          set tabstop=4
+          set shiftwidth=4
+          set expandtab
+          syntax on
+          if has("autocmd")
+            au BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$")
+              \| exe "normal! g'\"" | endif
+          endif
+
+    - name: /etc/motd
+      blockinfile:
+        path: "/etc/motd"
+        block: |
+          --------------------------------------------------------------------------------
+                                ATENCAO: Aviso Importante
+
+          É proibido o acesso não autorizado. Esse é um recurso de acesso restrito
+          controlado, monitorado e de responsabilidade da Fundação casper Libero
+
+          Se não possui autorização para acessar este recurso, desconecte imediatamente
+          ou podera sofrer sancoes legais e/ou acao disciplinar.
+
+          Em caso de problemas envie email para datacenter@domain.com
+
+
+    - name: /etc/cron.daily/logrotate
+      blockinfile:
+        path: "/etc/cron.daily/logrotate"
+        block: |
+          #!/bin/sh
+
+          logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf
+          EXITVALUE=$?
+          if [ $EXITVALUE != 0 ]; then
+              logger -t logrotate "ALERT exited abnormally with [$EXITVALUE]"
+          fi
+          exit 0
+
+    - name: localtime configuration to America/Sao_Paulo
+      shell:
+        cmd: timedatectl set-timezone America/Sao_Paulo
+
+    - name: enabling ntp
+      shell:
+        cmd: timedatectl set-ntp 1
+
+    - name: restart chronyd
+      systemd:
+        name: chronyd
+        state: restarted
+        enabled: yes
+
+    - name: sshd_config configurations
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        state: present
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backrefs: yes
+      with_items:
+        - { regexp: 'X11Forwarding yes', line: 'X11Forwarding no' }
+        - { regexp: '#StrictModes yes', line: 'StrictModes yes' }
+        - { regexp: 'StrictModes no', line: 'StrictModes yes' }
+        - { regexp: 'PermitRootLogin yes', line: 'PermitRootLogin no' }
+        - { regexp: '#PermitRootLogin yes', line: 'PermitRootLogin no' }
+        - { regexp: '#PasswordAuthentication yes', line: 'PasswordAuthentication no' }
+        - { regexp: 'PasswordAuthentication yes', line: 'PasswordAuthentication no' }
+
+    - name: restart sshd
+      systemd:
+        name: sshd
+        state: restarted
+        daemon_reload: yes
+        enabled: yes
