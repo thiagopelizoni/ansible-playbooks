@@ -1,0 +1,40 @@
+- name: certbot
+  hosts: certbot
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Enabling epel release
+      dnf:
+        name: epel-release
+        state: present
+
+    - name: Installing Certbot
+      dnf:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - certbot
+        - python3-certbot
+        - python3-certbot-nginx
+        - python3-certbot-dns-cloudflare
+
+    - name: copy cloudflare.ini into root dir
+      blockinfile:
+        path: /root/cloudflare.ini
+        block: |
+          dns_cloudflare_email = your_email@domain.com.br
+          dns_cloudflare_api_key = cloudflare_api_key_here
+
+    - name: certbot crontab auto renewal
+      cron:
+        name: certbot-renewal
+        user: root
+        job: "/bin/bash -lc '/usr/bin/certbot -q renew'"
+        minute: "0"
+        hour: "0"
+
+    - name: certbot generate *.yourdomain.com from LetsEncrypt based on Cloudflare DNS
+      shell:
+        cmd: certbot certonly -n --agree-tos --email your_email@yourdomain.com.br --dns-cloudflare --dns-cloudflare-credentials /root/cloudflare.ini -d *.yourdomain.com
+      ignore_errors: yes

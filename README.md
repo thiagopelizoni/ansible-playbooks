@@ -49,3 +49,11 @@ Installing Zabbix Agent for systems based on CentOS 5, 6 or 7 like.
 ```
 ansible-playbook -i hosts zabbix-agent-legacy.yml
 ```
+
+# [Certbot](certbot.yml)
+
+Installing and configuring a Certbot, a [LetsEncrypt](https://letsencrypt.org/) interface for free SSL certificates using automation.
+
+```
+ansible-playbook -i hosts certbot.yml
+```
