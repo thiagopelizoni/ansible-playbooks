@@ -1,0 +1,45 @@
+- name: redis
+  hosts: redis
+  become: yes
+  become_user: root
+  vars:
+    redis_password: strong_password_here
+
+  tasks:
+    - name: Installing Redis on staging environment
+      dnf:
+        name: redis
+        state: latest
+
+    - name: changing redis configurations on /etc/redis.conf
+      lineinfile:
+        dest: /etc/redis.conf
+        state: present
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backrefs: yes
+      with_items:
+        - { regexp: '^bind 127.0.0.1', line: 'bind 0.0.0.0' }
+        - { regexp: '^# requirepass foobared', line: "requirepass {{ redis_password }}" }
+
+    - name: firewall-cmd --add-service=redis --permanent
+      firewalld:
+        service: redis
+        permanent: yes
+        state: enabled
+
+    - name: reload firewall-cmd
+      shell:
+        cmd: firewall-cmd --reload
+
+    - name : SELinux allow Redis
+      shell:
+        cmd: |
+          semanage port -m -t http_port_t -p tcp 6379
+          semanage permissive -d redis_t
+
+    - name: restarting and enabling Redis
+      systemd:
+        name: redis
+        state: restarted
+        enabled: yes
